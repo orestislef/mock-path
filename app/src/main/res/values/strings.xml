@@ -5,6 +5,7 @@
     <string name="action_draw_off">Draw route</string>
     <string name="action_redraw">Redraw</string>
     <string name="action_draw_on">Drawing… tap to stop</string>
+    <string name="action_stop_drawing">Stop drawing</string>
     <string name="action_clear">Clear</string>
     <string name="action_start_playback">Start mocking</string>
     <string name="action_stop_playback">Stop mocking</string>

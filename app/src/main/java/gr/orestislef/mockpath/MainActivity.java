@@ -28,9 +28,10 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.slider.Slider;
-import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import gr.orestislef.mockpath.draw.PositionArrowOverlay;
 import gr.orestislef.mockpath.draw.RouteDrawOverlay;
@@ -70,12 +71,17 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
     private MaterialButton saveButton;
     private MaterialButton savedButton;
     private Slider speedSlider;
-    private SwitchMaterial loopSwitch;
-    private SwitchMaterial naturalSwitch;
+    private MaterialSwitch loopSwitch;
+    private MaterialSwitch naturalSwitch;
     private android.widget.TextView statusText;
     private android.widget.TextView speedLabel;
     private View rootView;
     private View panelView;
+    private View panelScroll;
+    private View drawBar;
+    private BottomSheetBehavior<View> bottomSheetBehavior;
+    private int basePeekPx;
+    private boolean playWasEnabled;
 
     private final ExecutorService storageExecutor = Executors.newSingleThreadExecutor();
 
@@ -110,6 +116,12 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         rootView = findViewById(R.id.root);
         panelView = findViewById(R.id.panel_content);
 
+        panelScroll = findViewById(R.id.panel_scroll);
+        drawBar = findViewById(R.id.draw_bar);
+        View sheet = findViewById(R.id.bottom_sheet);
+        bottomSheetBehavior = BottomSheetBehavior.from(sheet);
+        basePeekPx = bottomSheetBehavior.getPeekHeight();
+
         applyWindowInsets();
         setupMap();
         setupControls();
@@ -132,6 +144,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         final int panelBaseBottom = panelView.getPaddingBottom();
         final int panelBaseLeft = panelView.getPaddingLeft();
         final int panelBaseRight = panelView.getPaddingRight();
+        final int drawBarBaseBottom = drawBar.getPaddingBottom();
         ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             ViewGroup.MarginLayoutParams lp =
@@ -140,6 +153,11 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
             statusText.setLayoutParams(lp);
             panelView.setPadding(panelBaseLeft + bars.left, panelView.getPaddingTop(),
                     panelBaseRight + bars.right, panelBaseBottom + bars.bottom);
+            // The drawing bar is a separate child, so it needs the nav-bar inset too.
+            drawBar.setPadding(drawBar.getPaddingLeft(), drawBar.getPaddingTop(),
+                    drawBar.getPaddingRight(), drawBarBaseBottom + bars.bottom);
+            // Grow the collapsed peek so it clears the navigation bar.
+            bottomSheetBehavior.setPeekHeight(basePeekPx + bars.bottom, false);
             return insets;
         });
     }
@@ -168,6 +186,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
 
     private void setupControls() {
         drawButton.setOnClickListener(v -> toggleDrawMode());
+        findViewById(R.id.btn_stop_draw).setOnClickListener(v -> toggleDrawMode());
         clearButton.setOnClickListener(v -> {
             drawOverlay.clear();
             arrowOverlay.hide();
@@ -202,6 +221,15 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         drawOverlay.setDrawModeEnabled(enabled);
         // Freeze map gestures while drawing so the stroke doesn't pan the map.
         mapView.setMultiTouchControls(!enabled);
+
+        // While drawing, shrink the sheet to a single "Stop drawing" bar so the map is clear.
+        drawBar.setVisibility(enabled ? View.VISIBLE : View.GONE);
+        panelScroll.setVisibility(enabled ? View.GONE : View.VISIBLE);
+        final int targetState = enabled
+                ? BottomSheetBehavior.STATE_EXPANDED   // tiny content -> just the bar
+                : BottomSheetBehavior.STATE_COLLAPSED;
+        rootView.post(() -> bottomSheetBehavior.setState(targetState));
+
         if (enabled) {
             statusText.setText(R.string.status_draw_active);
         } else {
@@ -233,6 +261,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         float speedMps = speedSlider.getValue() / 3.6f;
         MockLocationService.start(this, speedMps, loopSwitch.isChecked(), naturalSwitch.isChecked());
         updateControls(true);
+        collapseSheet();
         statusText.setText(R.string.status_playing);
     }
 
@@ -341,6 +370,30 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         } else {
             drawButton.setText(hasRoute ? R.string.action_redraw : R.string.action_draw_off);
         }
+
+        // Pulse the play button the moment a route becomes playable.
+        boolean playEnabled = playButton.isEnabled();
+        if (playEnabled && !playWasEnabled && !running) {
+            pulse(playButton);
+        }
+        playWasEnabled = playEnabled;
+    }
+
+    private void collapseSheet() {
+        if (bottomSheetBehavior != null
+                && bottomSheetBehavior.getState() != BottomSheetBehavior.STATE_COLLAPSED) {
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+    }
+
+    /** Quick, subtle scale bounce to draw the eye to a control. */
+    private void pulse(@NonNull View view) {
+        view.animate().cancel();
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+        view.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140)
+                .withEndAction(() -> view.animate().scaleX(1f).scaleY(1f).setDuration(160).start())
+                .start();
     }
 
     // --- imported image trace ---
