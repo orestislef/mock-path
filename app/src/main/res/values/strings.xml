@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mock Path</string>
+
+    <string name="action_draw_off">Draw route</string>
+    <string name="action_redraw">Redraw</string>
+    <string name="action_draw_on">Drawing… tap to stop</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_start_playback">Start mocking</string>
+    <string name="action_stop_playback">Stop mocking</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_open_dev">Open Developer options</string>
+
+    <string name="label_loop">Loop route continuously</string>
+    <string name="label_speed_value">Speed: %1$d km/h</string>
+
+    <string name="status_draw_hint">Tap \"Draw route\", then trace a path on the map like a signature.</string>
+    <string name="status_draw_active">Draw mode on — trace your path on the map.</string>
+    <string name="status_points">Route ready — set speed and start. Points captured: %1$d</string>
+    <string name="status_playing">Starting playback…</string>
+    <string name="status_progress">Mocking location… %1$d%%</string>
+    <string name="status_completed">Route complete.</string>
+    <string name="status_stopped">Mocking stopped.</string>
+
+    <string name="toast_need_route">Draw a route first.</string>
+    <string name="toast_completed">Route finished.</string>
+    <string name="toast_location_needed">Location permission is required to mock location.</string>
+    <string name="toast_open_settings_failed">Could not open settings. Open Developer options manually.</string>
+
+    <string name="dialog_error_title">Cannot mock location</string>
+    <string name="dialog_mock_title">Set mock location app</string>
+    <string name="dialog_mock_message">Before mocking, open Developer options and choose this app under \"Select mock location app\". If Developer options are hidden, tap Build number 7 times in About phone.</string>
+    <string name="error_generic">Playback failed.</string>
+
+    <string name="notification_channel_name">Mock location playback</string>
+    <string name="notification_channel_desc">Shows progress while the drawn route is being mocked.</string>
+    <string name="notification_title">Mocking location</string>
+    <string name="notification_text">Following drawn route — %1$d%%</string>
+
+    <!-- Image trace / logo -->
+    <string name="action_import_logo">Import logo / image → trace</string>
+    <string name="title_trace">Trace image</string>
+    <string name="mode_draw">Add</string>
+    <string name="mode_erase">Erase</string>
+    <string name="mode_move">Move</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_change_image">Change image</string>
+    <string name="action_use_path">Use path</string>
+    <string name="label_threshold">Edge threshold</string>
+    <string name="label_detail">Detail</string>
+    <string name="trace_hint_draw">Add mode: draw extra strokes on the image.</string>
+    <string name="trace_hint_erase">Erase mode: drag over lines to remove them.</string>
+    <string name="trace_hint_move">Move mode: drag a point handle to reshape the path.</string>
+    <string name="toast_image_failed">Could not load that image.</string>
+    <string name="toast_trace_empty">Nothing to use — trace or draw a path first.</string>
+    <string name="toast_trace_applied">Traced path placed on the map. Adjust zoom, then start mocking.</string>
+
+    <!-- Saved routes -->
+    <string name="action_save_route">Save route</string>
+    <string name="action_saved_routes">Saved routes</string>
+    <string name="saved_title">Saved routes</string>
+    <string name="saved_empty">No saved routes yet.\nDraw or trace a route, then tap \"Save route\".</string>
+    <string name="saved_subtitle">%1$d points · %2$s</string>
+    <string name="saved_preview_desc">Route shape preview</string>
+    <string name="saved_delete_desc">Delete route</string>
+    <string name="saved_delete">Delete</string>
+    <string name="saved_delete_title">Delete route?</string>
+    <string name="saved_delete_message">Delete \"%1$s\"? This cannot be undone.</string>
+    <string name="dialog_save_title">Save route</string>
+    <string name="dialog_save_hint">Route name</string>
+    <string name="default_route_name">Route %1$s</string>
+    <string name="toast_saved">Route saved.</string>
+    <string name="toast_save_needs_route">Draw or trace a route before saving.</string>
+    <string name="toast_route_loaded">Route loaded. Set speed, then start mocking.</string>
+    <string name="toast_route_load_failed">Could not load that route.</string>
+</resources>
