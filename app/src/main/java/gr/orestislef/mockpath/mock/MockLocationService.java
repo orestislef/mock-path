@@ -36,6 +36,7 @@ public final class MockLocationService extends Service implements MockLocationEn
 
     public static final String EXTRA_SPEED_MPS = "speed_mps";
     public static final String EXTRA_LOOP = "loop";
+    public static final String EXTRA_NATURAL = "natural_movement";
 
     /** Broadcast actions consumed by the UI. */
     public static final String BROADCAST_FIX = "gr.orestislef.mockpath.broadcast.FIX";
@@ -111,6 +112,7 @@ public final class MockLocationService extends Service implements MockLocationEn
 
         final float speed = intent.getFloatExtra(EXTRA_SPEED_MPS, 8.33f);
         final boolean loop = intent.getBooleanExtra(EXTRA_LOOP, false);
+        final boolean natural = intent.getBooleanExtra(EXTRA_NATURAL, false);
         final List<double[]> points = RoutePayload.get();
 
         if (points.size() < 2) {
@@ -129,7 +131,7 @@ public final class MockLocationService extends Service implements MockLocationEn
                 engine.stop();
             }
             MockLocationEngine newEngine = new MockLocationEngine(
-                    getApplicationContext(), points, speed, loop, MockLocationService.this);
+                    getApplicationContext(), points, speed, loop, natural, MockLocationService.this);
             if (!newEngine.start()) {
                 // start() already reported the error via onError(); shut down.
                 mainHandler.post(MockLocationService.this::stopEverything);
@@ -295,11 +297,13 @@ public final class MockLocationService extends Service implements MockLocationEn
     }
 
     /** Convenience starters. */
-    public static void start(@NonNull Context context, float speedMps, boolean loop) {
+    public static void start(@NonNull Context context, float speedMps, boolean loop,
+                             boolean naturalMovement) {
         Intent i = new Intent(context, MockLocationService.class)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_SPEED_MPS, speedMps)
-                .putExtra(EXTRA_LOOP, loop);
+                .putExtra(EXTRA_LOOP, loop)
+                .putExtra(EXTRA_NATURAL, naturalMovement);
         context.startForegroundService(i);
     }
 

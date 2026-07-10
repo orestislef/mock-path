@@ -12,6 +12,8 @@
     <string name="action_open_dev">Open Developer options</string>
 
     <string name="label_loop">Loop route continuously</string>
+    <string name="label_natural">Natural movement</string>
+    <string name="label_natural_hint">Adds slight speed, wander and accuracy variation so the recorded track looks organic. Does not hide the mock-location flag.</string>
     <string name="label_speed_value">Speed: %1$d km/h</string>
 
     <string name="status_draw_hint">Tap \"Draw route\", then trace a path on the map like a signature.</string>

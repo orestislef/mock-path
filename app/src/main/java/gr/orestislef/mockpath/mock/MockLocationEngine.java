@@ -59,9 +59,23 @@ public final class MockLocationEngine {
     @Nullable
     private final Listener listener;
 
+    // Natural-movement bounds (medium intensity).
+    private static final double MAX_LATERAL_OFFSET_M = 6.0;
+    private static final double MIN_SPEED_FACTOR = 0.7;
+    private static final double MAX_SPEED_FACTOR = 1.3;
+    private static final double METERS_PER_DEGREE_LAT = 111_320.0;
+
+    private final boolean naturalMovement;
+    private final java.util.Random random = new java.util.Random();
+
     // Injection progress, in meters travelled from path start. Worker-thread only.
     private double travelledMeters = 0d;
     private long lastTickUptimeMs = 0L;
+
+    // Smooth random-walk state for natural movement (worker-thread only).
+    private double speedFactor = 1.0;
+    private double offsetEastM = 0.0;
+    private double offsetNorthM = 0.0;
 
     private volatile boolean running = false;
     private final boolean[] addedProviders = new boolean[TEST_PROVIDERS.length];
@@ -70,12 +84,14 @@ public final class MockLocationEngine {
                               @NonNull List<double[]> latLngPoints,
                               float speedMps,
                               boolean loop,
+                              boolean naturalMovement,
                               @Nullable Listener listener) {
         this.appContext = context.getApplicationContext();
         this.locationManager = (LocationManager) appContext.getSystemService(Context.LOCATION_SERVICE);
         this.fusedClient = LocationServices.getFusedLocationProviderClient(appContext);
         this.speedMps = Math.max(0.1f, speedMps);
         this.loop = loop;
+        this.naturalMovement = naturalMovement;
         this.listener = listener;
 
         double[] lats = new double[latLngPoints.size()];
@@ -130,6 +146,9 @@ public final class MockLocationEngine {
         }
         travelledMeters = 0d;
         lastTickUptimeMs = SystemClock.uptimeMillis();
+        speedFactor = 1.0;
+        offsetEastM = 0.0;
+        offsetNorthM = 0.0;
         running = true;
         return true;
     }
@@ -150,7 +169,13 @@ public final class MockLocationEngine {
             elapsedSeconds = 0d;
         }
 
-        travelledMeters += speedMps * elapsedSeconds;
+        float effectiveSpeed = speedMps;
+        if (naturalMovement) {
+            advanceNaturalState();
+            effectiveSpeed = (float) (speedMps * speedFactor);
+        }
+
+        travelledMeters += effectiveSpeed * elapsedSeconds;
         double total = path.totalDistanceMeters();
 
         boolean finished = false;
@@ -164,11 +189,24 @@ public final class MockLocationEngine {
         }
 
         PathInterpolator.Position pos = path.positionAt(travelledMeters);
-        boolean injected = injectLocation(pos, finished ? 0f : speedMps);
+        double lat = pos.latitude;
+        double lon = pos.longitude;
+        float accuracy = 3.0f;
+        if (naturalMovement) {
+            // Lateral wander: convert the metre offsets to a lat/lon delta.
+            lat += offsetNorthM / METERS_PER_DEGREE_LAT;
+            double cosLat = Math.cos(Math.toRadians(pos.latitude));
+            if (cosLat > 1e-6) {
+                lon += offsetEastM / (METERS_PER_DEGREE_LAT * cosLat);
+            }
+            accuracy = 3.0f + random.nextFloat() * 5.0f; // 3–8 m, fluctuating
+        }
+
+        float reportSpeed = finished ? 0f : effectiveSpeed;
+        boolean injected = injectLocation(lat, lon, pos.bearing, reportSpeed, accuracy);
         if (injected && listener != null) {
             double fraction = total > 0d ? Math.min(1d, travelledMeters / total) : 1d;
-            listener.onFix(pos.latitude, pos.longitude, pos.bearing,
-                    finished ? 0f : speedMps, fraction);
+            listener.onFix(lat, lon, pos.bearing, reportSpeed, fraction);
         }
 
         if (finished) {
@@ -177,6 +215,22 @@ public final class MockLocationEngine {
                 listener.onCompleted();
             }
         }
+    }
+
+    /** Advances the smooth random-walk state for one tick (~1 s). */
+    private void advanceNaturalState() {
+        // Speed drifts around 1.0 (mean-reverting) with small random shocks.
+        speedFactor += (1.0 - speedFactor) * 0.15 + random.nextGaussian() * 0.09;
+        speedFactor = clamp(speedFactor, MIN_SPEED_FACTOR, MAX_SPEED_FACTOR);
+        // Lateral offsets wander around 0 (mean-reverting) so the track drifts, not jumps.
+        offsetEastM += -offsetEastM * 0.2 + random.nextGaussian() * 1.6;
+        offsetNorthM += -offsetNorthM * 0.2 + random.nextGaussian() * 1.6;
+        offsetEastM = clamp(offsetEastM, -MAX_LATERAL_OFFSET_M, MAX_LATERAL_OFFSET_M);
+        offsetNorthM = clamp(offsetNorthM, -MAX_LATERAL_OFFSET_M, MAX_LATERAL_OFFSET_M);
+    }
+
+    private static double clamp(double v, double lo, double hi) {
+        return v < lo ? lo : (v > hi ? hi : v);
     }
 
     /** Unregisters providers. Safe to call multiple times / from any thread. */
@@ -188,8 +242,9 @@ public final class MockLocationEngine {
     // --- internals ---
 
     @SuppressLint("MissingPermission")
-    private boolean injectLocation(@NonNull PathInterpolator.Position pos, float speed) {
-        Location base = buildLocation(pos, speed);
+    private boolean injectLocation(double latitude, double longitude, float bearing,
+                                   float speed, float accuracy) {
+        Location base = buildLocation(latitude, longitude, bearing, speed, accuracy);
         boolean any = false;
         for (int i = 0; i < TEST_PROVIDERS.length; i++) {
             if (!addedProviders[i]) {
@@ -215,17 +270,18 @@ public final class MockLocationEngine {
         return any;
     }
 
-    private Location buildLocation(@NonNull PathInterpolator.Position pos, float speed) {
+    private Location buildLocation(double latitude, double longitude, float bearing,
+                                   float speed, float accuracy) {
         Location loc = new Location(LocationManager.GPS_PROVIDER);
-        loc.setLatitude(pos.latitude);
-        loc.setLongitude(pos.longitude);
+        loc.setLatitude(latitude);
+        loc.setLongitude(longitude);
         loc.setAltitude(0d);
-        loc.setAccuracy(3.0f);
-        loc.setBearing(pos.bearing);
+        loc.setAccuracy(accuracy);
+        loc.setBearing(bearing);
         loc.setSpeed(speed);
         loc.setBearingAccuracyDegrees(1.0f);
         loc.setSpeedAccuracyMetersPerSecond(0.5f);
-        loc.setVerticalAccuracyMeters(3.0f);
+        loc.setVerticalAccuracyMeters(accuracy);
         loc.setTime(System.currentTimeMillis());
         loc.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
         return loc;

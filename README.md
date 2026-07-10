@@ -51,6 +51,8 @@ is required — you just pick the app under **Developer options → Select mock 
   a direction arrow shows the current heading.
 - **Feeds the fused provider too**, so Google Maps Timeline and other apps pick up the mock.
 - **Save & reload routes** with a name and a shape preview thumbnail.
+- **Natural movement** (optional) — adds slight speed, lateral wander and accuracy variation via a
+  smooth random walk, so the recorded track looks organic instead of a robotic straight line.
 - **Foreground service** with a live progress notification and a one-tap stop.
 - **Loop mode** to repeat a route continuously.
 - Edge-to-edge Material 3 UI that keeps content inside the safe area on modern phones.
@@ -111,6 +113,10 @@ runtime; if something is missing the app explains what to do rather than crashin
 
 Mock Path is intended for development, testing, demos and personal experimentation. Only mock your
 location where you are allowed to, and respect the terms of any app you use it with.
+
+Note: Android tags every mock fix so apps can detect it via `Location.isFromMockProvider()`. The
+**Natural movement** option only makes the *recorded track* look more realistic — it does **not**
+hide that flag, and Mock Path makes no attempt to defeat anti-mock protections.
 
 ## License
 

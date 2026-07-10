@@ -71,6 +71,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
     private MaterialButton savedButton;
     private Slider speedSlider;
     private SwitchMaterial loopSwitch;
+    private SwitchMaterial naturalSwitch;
     private android.widget.TextView statusText;
     private android.widget.TextView speedLabel;
     private View rootView;
@@ -103,6 +104,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         savedButton = findViewById(R.id.btn_saved);
         speedSlider = findViewById(R.id.slider_speed);
         loopSwitch = findViewById(R.id.switch_loop);
+        naturalSwitch = findViewById(R.id.switch_natural);
         statusText = findViewById(R.id.text_status);
         speedLabel = findViewById(R.id.label_speed);
         rootView = findViewById(R.id.root);
@@ -229,7 +231,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         }
         RoutePayload.set(route);
         float speedMps = speedSlider.getValue() / 3.6f;
-        MockLocationService.start(this, speedMps, loopSwitch.isChecked());
+        MockLocationService.start(this, speedMps, loopSwitch.isChecked(), naturalSwitch.isChecked());
         updateControls(true);
         statusText.setText(R.string.status_playing);
     }
@@ -332,6 +334,7 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         savedButton.setEnabled(!running);
         speedSlider.setEnabled(!running);
         loopSwitch.setEnabled(!running);
+        naturalSwitch.setEnabled(!running);
 
         if (drawing) {
             drawButton.setText(R.string.action_draw_on);
