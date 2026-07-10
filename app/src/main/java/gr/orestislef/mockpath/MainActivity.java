@@ -130,6 +130,11 @@ public final class MainActivity extends AppCompatActivity implements LocalBroadc
         registerSavedRoutesLauncher();
         requestRuntimePermissions();
         updateControls(MockLocationService.isRunning());
+
+        // Open with the controls in view; the user can drag it down to free the map.
+        if (savedInstanceState == null) {
+            rootView.post(() -> bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED));
+        }
     }
 
     private void applyWindowInsets() {
